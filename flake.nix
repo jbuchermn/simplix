@@ -26,8 +26,9 @@
       {
         devShell =
           pkgs.mkShell {
-            depsBuildBuild = [
-              pkgs-cross.buildPackages.gcc
+            depsBuildBuild = with pkgs-cross; [
+              buildPackages.gcc
+              glibc.static
             ];
 
             nativeBuildInputs = with pkgs; [

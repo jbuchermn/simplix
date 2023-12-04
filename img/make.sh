@@ -1,75 +1,127 @@
 #!/bin/sh
-card=/dev/loop0
-cardboot=${card}p1
-cardroot=${card}p2
+CARD=/dev/null
+PARTBOOT=/dev/null
+PARTROOT=/dev/null
 
-uboot=./bootloader.bin
-linux=./Image
+function setup_img(){
+    echo ""
+    echo "**********"
+    echo "Setting up loopback..."
 
-# 1. Create image
-read -p "Creating image - press enter to continue"
-[ -f "./output.img" ] && rm ./output.img
-dd if=/dev/zero of=./output.img bs=1M count=256
-losetup -P ${card} ./output.img
+    CARD=/dev/loop0
+    PARTBOOT=/dev/loop0p1
+    PARTROOT=/dev/loop0p2
 
-# 2. Write bootloader
-echo ""
-echo "**********"
-read -p "Writing bootloader - press enter to continue"
-dd if=${uboot} of=${card} bs=1024 seek=8
+    if losetup -l | grep -q ${CARD}; then
+        echo "Already st up"
+    else
+        [ -f "./output.img" ] && rm ./output.img
+        dd if=/dev/zero of=./output.img bs=1M count=256
+        losetup -P ${CARD} ./output.img
+    fi
+}
 
-# 3. Create boot and root partitions
-echo ""
-echo "**********"
-read -p "Creating partitions - press enter to continue"
-blockdev --rereadpt ${card}
-cat <<EOT | sfdisk ${card}
+function setup_sdcard(){
+    CARD=/dev/sdb
+    PARTBOOT=/dev/sdb1
+    PARTROOT=/dev/sdb2
+
+    read -p "Using ${CARD} - press enter to continue"
+}
+
+function cleanup(){
+    echo ""
+    echo "**********"
+    echo "Cleaning up..."
+    losetup -d ${CARD} 2>/dev/null
+
+    umount ./bootfs
+    rm -rf ./bootfs
+    rm -rf ./initfs
+}
+
+
+UBOOT=./bootloader.bin
+LINUX=./linux
+
+function format(){
+    echo ""
+    echo "**********"
+    echo "Writing bootloader..."
+    dd if=${UBOOT} of=${CARD} bs=1024 seek=128
+
+    echo ""
+    echo "**********"
+    echo "Creating partitions..."
+    blockdev --rereadpt ${CARD}
+    cat <<EOT | sfdisk ${CARD}
 1M,32M,c
 ,,L
 EOT
 
-# # 4. Format partitions
-echo ""
-echo "**********"
-read -p "Formatting partitions - press enter to continue"
-mkfs.vfat ${cardboot}
-mkfs.ext4 ${cardroot}
+    echo ""
+    echo "**********"
+    echo "Formatting partitions..."
+    mkfs.vfat ${PARTBOOT}
+    mkfs.ext4 ${PARTROOT}
+}
 
-sleep 1
-partuuidroot=$(lsblk -no UUID ${cardroot})
-echo "Root partition has UUID ${partuuidroot}"
+function setup_initfs(){
+    echo ""
+    echo "**********"
+    echo "Creating initfs"
 
-# 5. Write boot partition
-echo ""
-echo "**********"
-read -p "Writing boot partition - press enter to continue"
-mkdir -p ./mnt
-mount ${cardboot} ./mnt/
-cp ${linux} ./mnt/$(basename ${linux})
-mkdir -p ./mnt/extlinux
-cat <<EOT >> ./mnt/extlinux/extlinux.conf
+    mkdir -p ./initfs
+    rm -rf ./initfs/*
+
+    cp ../main/main ./initfs/init
+}
+
+function setup_boot_partition(){
+    echo ""
+    echo "**********"
+    echo "Writing to boot partition"
+
+    mkdir -p ./bootfs
+    mount ${PARTBOOT} ./bootfs
+
+    rm -rf ./bootfs/*
+
+    cp ${LINUX} ./bootfs/linux
+    # kernel modules
+
+    cd ./initfs
+    chown -R root ./
+    find . -printf '%P\n' | cpio -o -H newc -R +0:+0 | gzip > ../bootfs/initramfs.cpio.gz
+    cd ..
+
+    mkdir -p ./bootfs/extlinux
+    cat <<EOT >> ./bootfs/extlinux/extlinux.conf
 label default
-    linux /$(basename ${linux})
-    append root=PARTUUID=${partuuidroot} console=ttyS0 earlycon=sbi init=/sbin/main
+    linux /linux
+    append earlycon=sbi console=ttyS0,115200n8 rootwait cma=96M init=/init
+    initrd /initramfs.cpio.gz
 EOT
-umount ./mnt/
+
+    chown -R root ./bootfs/*
+}
 
 # 6. Write root partition
-echo ""
-echo "**********"
-read -p "Writing root partition - press enter to continue"
-mkdir -p ./mnt
-mount ${cardroot} ./mnt/
-mkdir -p ./mnt/sbin
-chmod a+rwxt ./mnt/sbin
-cp ../main/main ./mnt/sbin/main
-chmod +x ./mnt/sbin/main
-chown -R root ./mnt/sbin
-umount ./mnt/
+# echo ""
+# echo "**********"
+# read -p "Writing root partition - press enter to continue"
+# mkdir -p ./mnt
+# mount ${cardroot} ./mnt/
+# mkdir -p ./mnt/sbin
+# chmod a+rwxt ./mnt/sbin
+# cp ../main/main ./mnt/sbin/main
+# chmod +x ./mnt/sbin/main
+# chown -R root ./mnt/sbin
+# umount ./mnt/
 
 
-# 7. Free everything
-echo ""
-echo "**********"
-read -p "Freeing loopback - press enter to continue"
-losetup -d ${card}
+setup_img
+format
+setup_initfs
+setup_boot_partition
+cleanup

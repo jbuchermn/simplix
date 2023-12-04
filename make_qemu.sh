@@ -12,5 +12,5 @@ cd linux-d1_all
 make CROSS_COMPILE=riscv64-unknown-linux-gnu- ARCH=riscv defconfig
 make CROSS_COMPILE=riscv64-unknown-linux-gnu- ARCH=riscv -j$(nproc)
 
-cp ./arch/riscv/boot/Image ../img/Image
+cp ./arch/riscv/boot/Image ../img/linux
 cd ..
