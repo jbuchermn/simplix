@@ -9,6 +9,7 @@ cp ./build/platform/generic/firmware/fw_payload.elf ../img/bootloader.bin
 cd ..
 
 cd linux-d1_all
+
 make CROSS_COMPILE=riscv64-unknown-linux-gnu- ARCH=riscv defconfig
 make CROSS_COMPILE=riscv64-unknown-linux-gnu- ARCH=riscv -j$(nproc)
 

@@ -1,4 +1,5 @@
-mnt
+initfs
+rootfs
 Image
 bootloader*
 *.img

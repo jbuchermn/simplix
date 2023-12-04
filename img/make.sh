@@ -35,7 +35,7 @@ function cleanup(){
     echo "Cleaning up..."
     losetup -d ${CARD} 2>/dev/null
 
-    umount ./bootfs
+    umount ./bootfs 2>/dev/null
     rm -rf ./bootfs
     rm -rf ./initfs
 }
@@ -74,7 +74,15 @@ function setup_initfs(){
     mkdir -p ./initfs
     rm -rf ./initfs/*
 
-    cp ../main/main ./initfs/init
+    cd initfs
+    mkdir bin
+
+    sudo ln -s $(which bash) /bin/bash
+    cd ../../toybox && PREFIX=../img/initfs make install && cd ../img/initfs
+    sudo rm /bin/bash
+
+    ln -s ./bin/sh ./init
+    cd ..
 }
 
 function setup_boot_partition(){
