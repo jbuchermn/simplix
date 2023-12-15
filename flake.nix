@@ -13,41 +13,48 @@
         pkgs = import nixpkgs {
           inherit system;
         };
-        pkgs-cross = import nixpkgs {
-          inherit system;
-          crossSystem = {
-            config = "riscv64-unknown-linux-gnu";
-          };
-        };
-        python-with-my-packages = pkgs.python3.withPackages (ps: with ps; [
-          setuptools
-        ]);
       in
       {
         devShell =
           pkgs.mkShell {
-            depsBuildBuild = with pkgs-cross; [
-              stdenv.cc
-              musl
-            ];
 
-            nativeBuildInputs = with pkgs; [
-              bison
-              flex
-              swig
-              bc
-              ncurses
-              dtc
-              qemu
+            # Can't compile gcc with the unnecessarily strict settings
+            hardeningDisable = [ "all" ];
 
-              python-with-my-packages
-            ];
+            nativeBuildInputs = with pkgs;
+              let
+                python-basic = pkgs.python3.withPackages (ps: with ps; [
+                  setuptools
+                ]);
+              in
+              [
+                qemu
+                ncurses
+                minicom
 
-            buildInputs = with pkgs; [
-              openssl
-              ncurses
-              glibc
-            ];
+                # ???
+                openssl
+                bison
+                flex
+                swig
+                bc
+                dtc
+
+                # OpenSBI
+                python-basic
+
+                # crosstool-NG
+                automake
+                help2man
+                libtool
+              ];
+
+            shellHook = ''
+              # crosstool-NG
+              unset CC;
+              unset CXX;
+            '';
+
           };
       }
     );

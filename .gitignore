@@ -1,5 +1,4 @@
-linux*
-opensbi*
-u-boot*
-toybox*
+deps
+output
+tools
 .ccls-cache

@@ -1,3 +1,11 @@
+TODO
+
+- [ ] Get cross-native compiler running
+- [ ] Make toybox build with musl-cross-make toolchain (only linux headers missing)
+- [ ] Build /init, initfs, bootfs, rootfs
+
+--------
+
 1. Setting up CC toolchain
 
 https://nix.dev/tutorials/cross-compilation.html
