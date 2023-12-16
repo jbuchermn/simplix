@@ -1,4 +1,6 @@
 #!/bin/sh
+mkdir -p ./output
+
 if [ "$1" == "qemu" ]; then
 
     pushd deps/u-boot
