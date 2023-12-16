@@ -71,7 +71,7 @@ function setup_initfs() {
 		mount --rbind /dev dev
 		mount -t proc /proc proc
 		mount --rbind /sys sys
-		chroot . oneit ./init
+		chroot . oneit init
 
 	else
 		echo "Could not find root"

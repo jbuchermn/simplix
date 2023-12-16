@@ -1,7 +1,7 @@
 #!/bin/sh
-	echo ""
-	echo "**********"
-	echo "Setting up rootfs"
+echo ""
+echo "**********"
+echo "Setting up rootfs"
 
 mkdir -p ./output/rootfs
 
@@ -10,10 +10,14 @@ mkdir -p ./output/rootfs/{usr/{bin,sbin,lib,include,libexec},dev,proc,sys,tmp,ho
 chmod a+rwxt ./output/rootfs/tmp
 ln -s usr/{bin,sbin,lib} ./output/rootfs
 
-######## Toybox
+######## Toybox and Bash
 pushd deps/toybox
 PREFIX=../../output/rootfs make install
 popd
+
+install -D -p ./deps/bash/bash ./output/rootfs/bin/bash
+pushd ./output/rootfs/bin; rm ./sh; ln -s ./bash ./sh; popd
+
 
 ######## Kernel modules
 mkdir -p ./output/rootfs/lib/modules
@@ -78,7 +82,16 @@ git clone https://github.com/wkusnierczyk/make
 popd
 
 ######## Init
-pushd ./output/rootfs
-ln -s ./bin/sh ./init
-popd
+cat <<EOT > ./output/rootfs/sbin/init
+#!/bin/sh
+echo "Starting up..."
+
+export CC="gcc"
+export CFLAGS="--sysroot=/"
+export CPP="cpp"
+export CPPFLAGS="--sysroot=/"
+
+bash
+EOT
+chmod +x ./output/rootfs/sbin/init
 

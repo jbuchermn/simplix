@@ -29,30 +29,35 @@
               in
               [
                 qemu
-                ncurses
                 minicom
 
-                # ???
-                openssl
+                # To use menuconfig
+                ncurses
+
+                # To compile u-boot and OpenSBI
                 bison
                 flex
-                swig
+                openssl
                 bc
+                swig
                 dtc
-
-                # OpenSBI
                 python-basic
 
-                # crosstool-NG
+                # To compile crosstool-NG
                 automake
                 help2man
                 libtool
+
+                # To compile bash
+                autoconf
               ];
 
             shellHook = ''
               # crosstool-NG
               unset CC;
               unset CXX;
+
+              source ./env.sh
             '';
 
           };
