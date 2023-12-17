@@ -27,7 +27,10 @@ function setup_initfs() {
 
 	# Install toybox
 	pushd deps/toybox
+	_TMP_CC=$CC
+	unset CC
 	PREFIX=../../output/${PREF}-initfs make install
+	export CC=$_TMP_CC
 	popd
 
 	# Install kernel modules

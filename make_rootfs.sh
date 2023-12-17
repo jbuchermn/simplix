@@ -10,54 +10,21 @@ mkdir -p ./output/rootfs/{usr/{bin,sbin,lib,include,libexec},dev,proc,sys,tmp,ho
 chmod a+rwxt ./output/rootfs/tmp
 ln -s usr/{bin,sbin,lib} ./output/rootfs
 
-######## Toybox and Bash
-pushd deps/toybox
-PREFIX=../../output/rootfs make install
-popd
-
-install -D -p ./deps/bash/bash ./output/rootfs/bin/bash
-pushd ./output/rootfs/bin; rm ./sh; ln -s ./bash ./sh; popd
-
-
 ######## Kernel modules
 mkdir -p ./output/rootfs/lib/modules
 cp -r ./output/qemu-modules/lib/* ./output/rootfs/lib/
 cp -r ./output/board-modules/lib/* ./output/rootfs/lib/
 
-######## Toolchain
-# gcc executables, with prefix
-cp -r tools/crossnative-toolchain/riscv64-unknown-linux-musl/bin/* ./output/rootfs/usr/bin
-pushd ./output/rootfs/usr/bin
-chmod -R u+w ./
-for i in ./riscv64-unknown-linux-musl-*; do
-    name=$(echo $i | sed -e 's/riscv64-unknown-linux-musl-//')
-    ln -s $i $name
+######## Cross-compiled binaries
+mkdir -p ./output/rootfs/nix/store
+for i in $(nix path-info --recursive $TARGET_ROOT); do
+	cp -r $i ./output/rootfs/nix/store/
 done
-popd
+sudo chown -R $(whoami) ./output/rootfs/nix
+sudo chmod -R u+w ./output/rootfs/nix
 
-# gcc internal libs / headers
-cp -r tools/crossnative-toolchain/riscv64-unknown-linux-musl/lib/* ./output/rootfs/usr/lib
-
-# libc and the like
-cp -r tools/crossnative-toolchain/riscv64-unknown-linux-musl/riscv64-unknown-linux-musl/sysroot/usr/lib/* ./output/rootfs/usr/lib
-
-# libgcc and the like, some executable, some lib, ld-musl-riscv64 linking to libc
-cp -r tools/crossnative-toolchain/riscv64-unknown-linux-musl/riscv64-unknown-linux-musl/sysroot/lib/* ./output/rootfs/usr/lib
-chmod -R u+w ./output/rootfs/usr/lib
-
-# Fix ld - libc symlink
-pushd  ./output/rootfs/usr/lib/
-rm ld-musl-riscv64.so.1
-ln -s libc.so ld-musl-riscv64.so.1
-popd
-
-# gcc internal executables
-cp -r tools/crossnative-toolchain/riscv64-unknown-linux-musl/libexec/* ./output/rootfs/usr/libexec
-chmod -R u+w ./output/rootfs/usr/libexec
-
-# includes
-cp -r tools/crossnative-toolchain/riscv64-unknown-linux-musl/riscv64-unknown-linux-musl/sysroot/usr/include/* ./output/rootfs/usr/include
-chmod -R u+w ./output/rootfs/usr/include
+# TODO! Setup shell
+pushd ./output/rootfs/usr/bin && ln -s ${CC_SHELL} sh; popd
 
 
 ######## Hello world
@@ -86,12 +53,13 @@ cat <<EOT > ./output/rootfs/sbin/init
 #!/bin/sh
 echo "Starting up..."
 
-export CC="gcc"
-export CFLAGS="--sysroot=/"
-export CPP="cpp"
-export CPPFLAGS="--sysroot=/"
+source ${TARGET_ROOT}/env.sh
+export PATH=\$PATH:\$CC_PATH
 
-bash
+echo "Path is \$PATH..."
+echo "Bash..."
+/bin/sh
+
 EOT
 chmod +x ./output/rootfs/sbin/init
 

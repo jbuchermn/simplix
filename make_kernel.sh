@@ -1,7 +1,7 @@
 #!/bin/sh
 pushd deps/linux
 if [ "$1" = "initial" ]; then
-	make ARCH=riscv defconfig
+	make defconfig
 fi
 
 ##### State
@@ -28,12 +28,16 @@ fi
 if [ "$1" = "qemu" -o "$2" = "qemu" ]; then
 	# qemu config
 
+	if [ "$1" = "initial" ]; then
+		make menuconfig
+	fi
+
 	# build and install
-	make ARCH=riscv -j$(nproc)
-	cp ./arch/riscv/boot/Image ../../output/qemu-linux
+	make -j$(nproc)
+	cp ./arch/$ARCH/boot/Image ../../output/qemu-linux
 
 	mkdir -p ../../output/qemu-modules
-	make ARCH=riscv -j$(nproc) INSTALL_MOD_PATH=../../output/qemu-modules modules_install
+	make -j$(nproc) INSTALL_MOD_PATH=../../output/qemu-modules modules_install
 	popd
 else
 	# board config
@@ -49,17 +53,21 @@ else
 	./scripts/config --enable V4L_MEM2MEM_DRIVERS
 	./scripts/config --enable VIDEO_SUNXI_CEDRUS
 
+	if [ "$1" = "initial" ]; then
+		make menuconfig
+	fi
+
 	# build and install
-	make ARCH=riscv -j$(nproc)
-	cp ./arch/riscv/boot/Image ../../output/board-linux
+	make -j$(nproc)
+	cp ./arch/$ARCH/boot/Image ../../output/board-linux
 
 	mkdir -p ../../output/board-modules
-	make ARCH=riscv -j$(nproc) INSTALL_MOD_PATH=../../output/board-modules modules_install
+	make -j$(nproc) INSTALL_MOD_PATH=../../output/board-modules modules_install
 	popd
 
 	# rtl8723
 	pushd ./deps/rtl8723ds
-	make ARCH=riscv KSRC=../linux -j$(nproc)
+	make KSRC=../linux -j$(nproc)
 	KERNEL_RELEASE=6.6.0
 	install -D -p -m 644 ./8723ds.ko ../../output/board-modules/lib/modules/${KERNEL_RELEASE}/kernel/drivers/net/wireless/8723ds.ko
 	popd

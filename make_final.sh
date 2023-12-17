@@ -23,7 +23,7 @@ function setup_img(){
 		echo "Already st up"
 	else
 		[ -f "./output/sdcard.img" ] && rm ./output/sdcard.img
-		dd if=/dev/zero of=./output/sdcard.img bs=1M count=512
+		dd if=/dev/zero of=./output/sdcard.img bs=1M count=2048
 		losetup -P ${CARD} ./output/sdcard.img
 	fi
 }
