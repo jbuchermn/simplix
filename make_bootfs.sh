@@ -25,13 +25,8 @@ function setup_initfs() {
 	chmod a+rwxt ./output/${PREF}-initfs/tmp
 	ln -s usr/{bin,sbin,lib} ./output/${PREF}-initfs
 
-	# Install toybox
-	pushd deps/toybox
-	_TMP_CC=$CC
-	unset CC
-	PREFIX=../../output/${PREF}-initfs make install
-	export CC=$_TMP_CC
-	popd
+	# Install command line (probably toybox)
+	cp -av ${SIMPLIX_STATIC_CMDLINE}/* ./output/${PREF}-initfs/bin
 
 	# Install kernel modules
 	rm ./output/${PREF}-modules/build 2>/dev/null

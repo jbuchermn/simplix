@@ -12,7 +12,7 @@
       let
         arch = "riscv";
         cpu = "riscv64";
-        libc = "musl";
+        libc = "gnu";
         config = "${cpu}-unknown-linux-${libc}";
         pkgs = import nixpkgs {
           inherit system;
@@ -27,17 +27,26 @@
       rec {
         targetSystem =
           let
-            cc-shell = (with pkgs-cross; bash);
-            cc-wanted = (with pkgs-cross;
+            simplix-shell = (with pkgs-cross; bash);
+            simplix-static-commandline = (with pkgs-cross.pkgsStatic; toybox.overrideAttrs (_: {
+              # fortify-headers broken with musl (static toybox appears to always use musl)
+              hardeningDisable = [ "all" ];
+              configurePhase = ''
+                KCONFIG=""
+                for i in sh modprobe; do KCONFIG="$KCONFIG"$'\n'CONFIG_''${i^^?}=y; done
+                make defconfig KCONFIG_ALLCONFIG=<(echo "$KCONFIG")
+              '';
+            }));
+            simplix-wanted = with pkgs-cross;
               let
                 python-basic = pkgs-cross.python3.withPackages (ps: with ps; [
                   setuptools
                 ]);
               in
               [
-                cc-shell
+                simplix-shell
+                simplix-static-commandline
 
-                busybox
                 iw
 
                 gcc
@@ -45,12 +54,12 @@
                 gnumake
 
                 python-basic
-              ]) ++ (with pkgs-cross.pkgsStatic; [
-            ]);
+                vim
+              ];
 
           in
           pkgs-cross.stdenv.mkDerivation {
-            depsTargetTarget = cc-wanted;
+            depsTargetTarget = simplix-wanted;
             phases = [ "installPhase" ];
 
             name = "target";
@@ -58,10 +67,10 @@
             installPhase = ''
               mkdir -p $out
               cat <<-EOF > $out/env.sh
-              export CC_PATH=${builtins.concatStringsSep ":" (map (x: "${x}/bin") cc-wanted) }
+              export SIMPLIX_PATH=${builtins.concatStringsSep ":" (map (x: "${x}/bin") simplix-wanted) }
 
-              # TODO
-              export CC_SHELL=${cc-shell}/bin/bash
+              export SIMPLIX_SHELL=${simplix-shell}${simplix-shell.shellPath}
+              export SIMPLIX_STATIC_CMDLINE=${simplix-static-commandline}/bin
               EOF
               chmod +x $out/env.sh
             '';
@@ -73,9 +82,6 @@
             depsBuildBuild = with pkgs-cross; [
               stdenv.cc
             ];
-
-            # Can't compile gcc with the unnecessarily strict settings
-            hardeningDisable = [ "all" ];
 
             nativeBuildInputs = with pkgs;
               let
@@ -107,12 +113,13 @@
               export ARCH=${arch}
               export CROSS_TARGET=${config}
               export CROSS_COMPILE=${config}-
-              export CC=''$NIX_CC_FOR_BUILD
-              export CXX=''$NIX_CXX_FOR_BUILD
+              export CC=''${CROSS_COMPILE}gcc
+              export CXX=''${CROSS_COMPILE}g++
 
               export TARGET_ROOT=${targetSystem}
               echo "TARGET_ROOT=''$TARGET_ROOT"
               source ''$TARGET_ROOT/env.sh
+              nix path-info --recursive --size --closure-size --human-readable ''$TARGET_ROOT
             '';
           };
       }

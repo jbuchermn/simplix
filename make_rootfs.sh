@@ -16,6 +16,8 @@ cp -r ./output/qemu-modules/lib/* ./output/rootfs/lib/
 cp -r ./output/board-modules/lib/* ./output/rootfs/lib/
 
 ######## Cross-compiled binaries
+# Always clean nix store
+rm -rf ./output/rootfs/nix/store
 mkdir -p ./output/rootfs/nix/store
 for i in $(nix path-info --recursive $TARGET_ROOT); do
 	cp -r $i ./output/rootfs/nix/store/
@@ -23,8 +25,8 @@ done
 sudo chown -R $(whoami) ./output/rootfs/nix
 sudo chmod -R u+w ./output/rootfs/nix
 
-# TODO! Setup shell
-pushd ./output/rootfs/usr/bin && ln -s ${CC_SHELL} sh; popd
+# Setup shell
+pushd ./output/rootfs/usr/bin && ln -s ${SIMPLIX_SHELL} sh; popd
 
 
 ######## Hello world
@@ -54,7 +56,7 @@ cat <<EOT > ./output/rootfs/sbin/init
 echo "Starting up..."
 
 source ${TARGET_ROOT}/env.sh
-export PATH=\$PATH:\$CC_PATH
+export PATH=\$PATH:\$SIMPLIX_PATH
 
 echo "Path is \$PATH..."
 echo "Bash..."
