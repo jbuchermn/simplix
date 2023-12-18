@@ -26,6 +26,7 @@ function setup_initfs() {
 	ln -s usr/{bin,sbin,lib} ./output/${PREF}-initfs
 
 	# Install command line (probably toybox)
+	[ -z "${SIMPLIX_STATIC_CMDLINE}" ] && exit 1
 	cp -av ${SIMPLIX_STATIC_CMDLINE}/* ./output/${PREF}-initfs/bin
 
 	# Install kernel modules
@@ -52,30 +53,26 @@ function setup_initfs() {
 	mount -t proc proc proc
 	mount -t sysfs sys sys
 
-	for i in {1..3}; do
-		echo "Looking for root..."
+	echo "Looking for root"
+	for i in {1..10}; do
+		echo "."
 		root=$(blkid | grep "LABEL=\"root\"" | sed -e 's/^\(.*\):.*$/\1/')
 		if [ -e "$root" ]; then
 			break
 		fi
-		sleep 5
+		sleep 1
 	done
 
 	if [ -e "$root" ]; then
 		echo "Root at: $root"
 		mount $root /mnt
-
-		cd /mnt
-		mount --rbind /dev dev
-		mount -t proc /proc proc
-		mount --rbind /sys sys
-		chroot . oneit init
+		exec switch_root /mnt /sbin/init
 
 	else
 		echo "Could not find root"
 		/bin/sh
-	fi
 
+	fi
 	EOF
 	chmod +x ./output/${PREF}-initfs/init
 }

@@ -6,7 +6,7 @@ echo "Setting up rootfs"
 mkdir -p ./output/rootfs
 
 ######## Setup dirs
-mkdir -p ./output/rootfs/{usr/{bin,sbin,lib,include,libexec},dev,proc,sys,tmp,home,var}
+mkdir -p ./output/rootfs/{usr/{bin,sbin,lib,include,libexec},dev,proc,sys,tmp,home,var,etc,run}
 chmod a+rwxt ./output/rootfs/tmp
 ln -s usr/{bin,sbin,lib} ./output/rootfs
 
@@ -28,40 +28,28 @@ sudo chmod -R u+w ./output/rootfs/nix
 # Setup shell
 pushd ./output/rootfs/usr/bin && ln -s ${SIMPLIX_SHELL} sh; popd
 
-
-######## Hello world
-pushd ./output/rootfs/home
-cat <<EOT > ./main.c
-#include <stdio.h>
-
-int main(){
-	printf("Hello, world!\n");
-	return 0;
-}
-
-EOT
-
-cat <<EOT > ./compile.sh
-#!/bin/sh
-gcc --sysroot=/ main.c
-EOT
-chmod +x ./compile.sh
-
-git clone https://github.com/wkusnierczyk/make
-popd
-
 ######## Init
 cat <<EOT > ./output/rootfs/sbin/init
 #!/bin/sh
-echo "Starting up..."
+echo "Init..."
 
 source ${TARGET_ROOT}/env.sh
 export PATH=\$PATH:\$SIMPLIX_PATH
-
-echo "Path is \$PATH..."
-echo "Bash..."
-/bin/sh
+exec oneit /etc/startup.sh
 
 EOT
 chmod +x ./output/rootfs/sbin/init
 
+# TODO
+cat <<EOT > ./output/rootfs/etc/startup.sh
+#!/bin/sh
+echo "Starting up..."
+
+echo "Loading modules..."
+modprobe 8723ds
+
+echo "Starting shell..."
+/bin/sh
+
+EOT
+chmod +x ./output/rootfs/etc/startup.sh
