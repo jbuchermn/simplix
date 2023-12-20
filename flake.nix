@@ -33,7 +33,7 @@
               hardeningDisable = [ "all" ];
               configurePhase = ''
                 KCONFIG=""
-                for i in sh modprobe; do KCONFIG="$KCONFIG"$'\n'CONFIG_''${i^^?}=y; done
+                for i in sh modprobe route dhcp; do KCONFIG="$KCONFIG"$'\n'CONFIG_''${i^^?}=y; done
                 make defconfig KCONFIG_ALLCONFIG=<(echo "$KCONFIG")
               '';
             }));
@@ -47,14 +47,15 @@
                 simplix-shell
                 simplix-static-commandline
 
-                iw
+                (wpa_supplicant.override { dbusSupport = false; withPcsclite = false; })
+                (openssh.override { withKerberos = false; withFIDO = false; })
 
-                gcc
-                binutils
-                gnumake
-
-                python-basic
                 vim
+                python-basic
+
+                # gcc
+                # binutils
+                # gnumake
               ];
 
           in
@@ -116,10 +117,12 @@
               export CC=''${CROSS_COMPILE}gcc
               export CXX=''${CROSS_COMPILE}g++
 
-              export TARGET_ROOT=${targetSystem}
-              echo "TARGET_ROOT=''$TARGET_ROOT"
-              source ''$TARGET_ROOT/env.sh
-              nix path-info --recursive --size --closure-size --human-readable ''$TARGET_ROOT
+              export SIMPLIX_ROOT=${targetSystem}
+              echo "SIMPLIX_ROOT=''$SIMPLIX_ROOT"
+              source ''$SIMPLIX_ROOT/env.sh
+              nix path-info --recursive --size --closure-size --human-readable ''$SIMPLIX_ROOT
+
+              [ -e "./secret_env.sh" ] && source secret_env.sh
             '';
           };
       }

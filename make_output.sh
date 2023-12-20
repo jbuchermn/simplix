@@ -6,4 +6,4 @@ pushd output && ls . | grep -xv ".*linux\|.*-bootloader.*\|.*modules" | xargs su
 ./make_rootfs.sh
 sudo ./make_final.sh "$2"
 ME=$(whoami)
-sudo chown $ME output/sdcard.img
+[ -e "./output/sdcard.img" ] && sudo chown $ME output/sdcard.img

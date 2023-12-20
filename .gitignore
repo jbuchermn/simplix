@@ -2,3 +2,4 @@ output
 tools
 playground
 .ccls-cache
+secret_env.sh

@@ -10,6 +10,7 @@ Ideas:
 Next steps:
 - Move from ./make_[...].sh to derivations
 - Have an eye on kernel version (nix headers / glibc v. manually compiled kernel)
+- OTA updates of the root fs (maybe bluetooth) + get logs
 
 Issues:
 - cross-native gcc with musl can't compile anything - issues with collect2
