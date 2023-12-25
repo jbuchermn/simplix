@@ -33,8 +33,11 @@ pushd ./output/rootfs/usr/bin && ln -s ${SIMPLIX_SHELL} sh; popd
 
 ######## Basic configuration
 
-# TODO: Does not seem to be enough, also check /etc/hosts?
 echo "simplix" > ./output/rootfs/etc/hostname
+cat <<EOT > ./output/rootfs/etc/hosts
+127.0.0.1 localhost
+127.0.0.1 simplix
+EOT
 
 cat <<'EOF' >./output/rootfs/etc/passwd
 root::0:0:root:/home:/bin/sh
@@ -67,11 +70,9 @@ chmod +x ./output/rootfs/sbin/init
 cat <<'EOT' > ./output/rootfs/etc/rc
 #!/bin/sh
 echo "Setting up log dir /var/log/rc.d"
-if [ -d "/var/log/rc.d" ]; then
-	rm -rf /var/log/rc.d-archive-2
-	cp -r /var/log/rc.d-archive-1 /var/log/rc.d-archive-2
-	cp -r /var/log/rc.d /var/log/rc.d-archive-1
-fi
+rm -rf /var/log/rc.d-archive-2
+[ -d "/var/log/rc.d-archive-1" ] && cp -r /var/log/rc.d-archive-1 /var/log/rc.d-archive-2
+[ -d "/var/log/rc.d" ] && cp -r /var/log/rc.d /var/log/rc.d-archive-1
 mkdir -p /var/log/rc.d
 
 echo "Starting..."
@@ -101,7 +102,7 @@ cat <<EOT > ./output/rootfs/etc/rc.d/100_kernel.sh
 #!/bin/sh
 
 # Load modules
-# TODO: Only in case of board
+# TODO: Only in case of board (sipeed lichee rv)
 modprobe 8723ds
 
 # Kernel bug workaround for ping
@@ -114,6 +115,7 @@ EOT
 cat <<'EOT' > ./output/rootfs/etc/rc.d/200_networking.sh
 #!/bin/sh
 ifconfig lo 127.0.0.1
+hostname $(cat /etc/hostname)
 
 wifi_dev=""
 eth_dev=""

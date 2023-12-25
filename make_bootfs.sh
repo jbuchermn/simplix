@@ -116,8 +116,8 @@ function setup_bootfs(){
 	# Assemble kernel, initramfs and boot script
 	mkdir -p ./output/${PREF}-bootfs
 	cp ./output/${PREF}-linux ./output/${PREF}-bootfs/linux
-	${MKIMAGE} -A riscv -O linux -T script -C none -d ./output/${PREF}-boot.cmd ./output/${PREF}-bootfs/boot.scr
-	${MKIMAGE} -A riscv -O linux -T ramdisk -d ./output/${PREF}-initramfs.cpio.gz ./output/${PREF}-bootfs/u-initrd
+	${MKIMAGE} -A ${ARCH} -O linux -T script -C none -d ./output/${PREF}-boot.cmd ./output/${PREF}-bootfs/boot.scr
+	${MKIMAGE} -A ${ARCH} -O linux -T ramdisk -d ./output/${PREF}-initramfs.cpio.gz ./output/${PREF}-bootfs/u-initrd
 }
 
 setup_initfs
