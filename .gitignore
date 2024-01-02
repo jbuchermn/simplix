@@ -1,5 +1,6 @@
-output
-tools
-playground
+tmp
+dev
+result
 .ccls-cache
-secret_env.sh
+sdcard.img
+qemu.sh
