@@ -1,19 +1,16 @@
-Playground for Allwinner D1 / Sipeed Lichee RV
+Simplix - hacky and simple linux distro for embedded using Nix
 ==============================================
 
-Ideas:
-- Get minimal self-hosting linux running
+Done:
 - Get WiFi and networking running
-- Test hw acceleration and other D1 features
 - Try to build distro using nix on host
 
 Next steps:
-- Move from ./make_[...].sh to derivations
+- Other archs
+- Simple status display using gpio leds
 - Have an eye on kernel version (nix headers / glibc v. manually compiled kernel)
+
+Ideas:
+- Get minimal self-hosting linux running
+- Test hw acceleration and other D1 features
 - OTA updates of the root fs (maybe bluetooth) + get logs
-
-Issues:
-- cross-native gcc with musl can't compile anything - issues with collect2
-
-Some notes:
-- Weird issues configuring u-boot... Fix ```touch scripts/kconfig/confdata.c```
