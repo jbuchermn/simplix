@@ -1,4 +1,5 @@
-{ pkgs, pkgs-cross }:
+{ pkgs }:
+pkgs-cross:
 linux:
 { simplix-user
 , withHost ? true
@@ -40,7 +41,9 @@ let
     installPhase = ''
       mkdir -p $out
       cat <<-EOF > $out/env.sh
-      export SIMPLIX_PATH=${builtins.concatStringsSep ":" (map (x: "${x}/bin") depsTargetTarget) }
+      export SIMPLIX_PATH="${builtins.concatStringsSep ":" (map (x: "${x}/bin") depsTargetTarget) }"
+      export SIMPLIX_LD_FLAGS="${builtins.concatStringsSep " " (map (x: "-L${x}/lib") depsTargetTarget) }"
+      export SIMPLIX_C_FLAGS="${builtins.concatStringsSep " " (map (x: "-I${x}/include") depsTargetTarget) }"
       EOF
       chmod +x $out/env.sh
 

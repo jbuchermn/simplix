@@ -1,4 +1,5 @@
-{ pkgs, pkgs-cross }:
+{ pkgs }:
+pkgs-cross:
 let
   simplix-toybox = (with pkgs-cross.pkgsStatic; toybox.overrideAttrs (prev: {
     # fortify-headers broken with musl (static toybox appears to always use musl)

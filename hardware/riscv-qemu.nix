@@ -17,6 +17,10 @@ in
 rec
 {
   ###################################################################
+  inherit arch config pkgs-cross;
+  boardname = "qemu";
+
+  ###################################################################
   bootloader = pkgs.stdenv.mkDerivation
     {
       depsBuildBuild = with pkgs-cross; [

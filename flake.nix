@@ -10,97 +10,107 @@
     flake-utils.lib.eachDefaultSystem (
       system:
       let
-        arch = "riscv";
-        cpu = "riscv64";
-        libc = "gnu";
-        config = "${cpu}-unknown-linux-${libc}";
         pkgs = import nixpkgs {
           inherit system;
         };
-        pkgs-cross = import nixpkgs {
-          inherit system;
-          crossSystem = {
-            inherit config;
-          };
-        };
-
         hardware = {
           riscv-qemu = (import ./hardware/riscv-qemu.nix) { inherit nixpkgs system; };
           riscv-sipeed-lichee-rv = (import ./hardware/riscv-sipeed-lichee-rv.nix) { inherit nixpkgs system; };
         };
 
-        initfs = (import ./initfs.nix) { inherit pkgs pkgs-cross; };
-        rootfs = (import ./rootfs.nix) { inherit pkgs pkgs-cross; };
-        package = (import ./package.nix) { inherit pkgs pkgs-cross initfs rootfs; };
+        initfs = import ./initfs.nix { inherit pkgs; };
+        rootfs = import ./rootfs.nix { inherit pkgs; };
+        package = import ./package.nix { inherit pkgs initfs rootfs; };
       in
       rec {
-        # test = hardware.riscv-qemu.bootloader;
-        # test = hardware.riscv-sipeed-lichee-rv.bootloader;
-        # test = hardware.riscv-sipeed-lichee-rv.linux;
-        # test = hardware.riscv-qemu.linux;
-        # test = hardware.riscv-sipeed-lichee-rv.bootfs initfs;
-        # test = hardware.riscv-qemu.bootfs initfs;
-        # test = rootfs
-        #   hardware.riscv-sipeed-lichee-rv.linux
-        #   {
-        #     simplix-user = with pkgs-cross; [ python3 ];
-        #   };
-        test = package hardware.riscv-sipeed-lichee-rv {
-          simplix-user = with pkgs-cross; [ python3 ];
-        };
+        pkgs-cross = hardware.riscv-qemu.pkgs-cross;
 
         ###################################################################
-        devShell =
-          pkgs.mkShell {
+        simplix = args: builtins.mapAttrs
+          (_: hw: package hw args)
+          hardware;
 
-            # TODO: Is providing the correct cross-compiler for menuconfig necessary?
-            # - Try with make menuconfig (without ccc), add cc, make oldconfig
-            # - In this case this should be moved into hardware
-            depsBuildBuild = with pkgs-cross; [
-              stdenv.cc
-            ];
+        # nix build .#simplix-basic.<board> (e.g. .#simplix-basic.riscv-qemu)
+        ###################################################################
+        packages = {
+          simplix-basic = builtins.mapAttrs
+            (_: hw: package hw {
+              simplix-user = with hw.pkgs-cross; [ 
+                python3
+                libgpiod
+              ];
+            })
+            hardware;
+        };
 
-            nativeBuildInputs = with pkgs; [
-              minicom
-              qemu
+        # nix develop .#<board> (e.g. .#riscv-qemu)
+        ###################################################################
+        devShells = with pkgs; lib.concatMapAttrs
+          (name: hw:
+            let
+              pkgs-cross = hw.pkgs-cross;
+            in
+            {
+              ${name} =
+                pkgs.mkShell
+                  {
+                    depsBuildBuild = with pkgs-cross;
+                      [
+                        stdenv.cc
+                      ];
 
-              # kernel menuconfig
-              ncurses
-              flex
-              bison
-              bc
-            ];
+                    nativeBuildInputs = with pkgs; [
+                      minicom
+                      qemu
 
-            shellHook = ''
-              function kernel-config() {
-                kver=$1
-                karch=$2
-                board=$3
-                config=$4
+                      # kernel menuconfig
+                      ncurses
+                      flex
+                      bison
+                      bc
+                    ];
 
-                if [ -z "$kver" ] || [ -z "$karch" ] || [ -z "$board" ] || [ -z "$config" ]; then
-                  echo "Usage: kernel-config <kver> <karch> <board> <config>"
-                  echo "  e.g. kernel-config 6.6.8 riscv sipeed-lichee-rv menuconfig"
-                  return
-                fi
+                    shellHook = ''
+                      karch="${hw.arch}"
+                      board=${hw.boardname}
 
-                if [ "$karch" != "riscv" ]; then
-                  echo "TODO: Not implemented yet";
-                  return
-                fi
+                      export ARCH="$karch"
+                      export CROSS_COMPILE="${hw.config}-"
 
-                cp ./hardware/$karch-$board-$kver.config ./dev/linux-$kver/.config
-                pushd ./dev/linux-$kver
+                      function kernel-config() {
+                        echo "Kernel config for $board ($karch)"
+                        kver=$1
+                        config=$2
 
-                export ARCH=$karch
-                export CROSS_COMPILE=${config}-
-                make $config
-                popd
-                cp ./hardware/$karch-$board-$kver.config ./hardware/$karch-$board-$kver.config.old
-                cp ./dev/linux-$kver/.config ./hardware/$karch-$board-$kver.config
-              }
-            '';
-          };
+                        if [ -z "$kver" ] || [ -z "$config" ]; then
+                          echo "Usage: kernel-config <kver> <config>"
+                          echo "  e.g. kernel-config 6.6.8 menuconfig"
+                          return
+                        fi
+
+                        cp ./hardware/$karch-$board-$kver.config ./dev/linux-$kver/.config
+                        pushd ./dev/linux-$kver
+
+                        make $config
+                        popd
+                        cp ./hardware/$karch-$board-$kver.config ./hardware/$karch-$board-$kver.config.old
+                        cp ./dev/linux-$kver/.config ./hardware/$karch-$board-$kver.config
+                      }
+                      kernel-config
+                    '';
+                  };
+            })
+          hardware;
+
+        ###################################################################
+        devShell = 
+          pkgs.mkShell
+            {
+              nativeBuildInputs = with pkgs; [
+                minicom
+                qemu
+              ];
+            };
       }
     );
 }

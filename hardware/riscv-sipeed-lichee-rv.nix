@@ -17,6 +17,10 @@ in
 rec
 {
   ###################################################################
+  inherit arch config pkgs-cross;
+  boardname = "sipeed-lichee-rv";
+
+  ###################################################################
   bootloader = pkgs.stdenv.mkDerivation
     {
       name = "sipeed-lichee-rv-bootloader";

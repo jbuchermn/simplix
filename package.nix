@@ -1,10 +1,10 @@
-{ pkgs, pkgs-cross, initfs, rootfs }:
+{ pkgs, initfs, rootfs }:
 hardware:
 rootfs-config:
 let
   simplix-bootloader = hardware.bootloader;
-  simplix-bootfs = hardware.bootfs initfs;
-  simplix-rootfs = rootfs hardware.linux rootfs-config;
+  simplix-bootfs = hardware.bootfs (initfs hardware.pkgs-cross);
+  simplix-rootfs = rootfs hardware.pkgs-cross hardware.linux rootfs-config;
 in
 pkgs.stdenv.mkDerivation {
   name = "package";
