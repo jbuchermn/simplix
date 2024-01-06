@@ -125,8 +125,9 @@ pkgs.stdenv.mkDerivation {
     }
 
     if [ -z "$2" ]; then
-      echo "Usage: make.sh <target> <user>. Run as root"
+      echo "Usage: make.sh <target> <user> [<home>]. Run as root"
       echo "Target can be /dev/sd... or ../../result.img"
+      echo "Home defaults to ./home"
       exit 1
     fi
     if [ "$(id -u)" -ne 0 ]; then echo "Please run as root." >&2; exit 1; fi
@@ -144,6 +145,7 @@ pkgs.stdenv.mkDerivation {
     write_bootfs
     write_rootfs
     make_store "$mount_dir/rootfs"
+    make_home "$mount_dir/rootfs" "$3"
     make_secrets "$mount_dir/rootfs" "$2"
     flash_bootloader "$blk_dev"
     cleanup

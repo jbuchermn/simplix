@@ -1,7 +1,7 @@
 { pkgs }:
 pkgs-cross:
 linux:
-{ simplix-user
+{ userPkgs ? [ ]
 , withHost ? true
 }:
 let
@@ -33,7 +33,7 @@ let
     depsTargetTarget = simplix-base ++ [
       simplix-shell
       simplix-toybox
-    ] ++ simplix-user
+    ] ++ userPkgs
       ++ (pkgs.lib.optionals withHost simplix-host);
 
     phases = [ "installPhase" ];
@@ -287,9 +287,27 @@ pkgs-cross.stdenv.mkDerivation
     PermitRootLogin yes
     EOT
 
-
-
     ### Finish init
     find $ROOT/etc/rc.d -name '*.sh' -exec chmod +x {} \;
+
+
+    ######## Home
+    cat <<'EOT' >> $ROOT/../make.sh
+    function make_home() {
+      h="$2"
+      if [ -z "$h" ]; then
+        h="./home"
+      fi
+
+      if [ -d "$h" ]; then
+        echo "Copying home from $h..."
+        mkdir -p $1/home
+        cp -r "$h"/* $1/home/
+        sudo chown -R root $1/home
+      fi
+    }
+
+    EOT
+
   '';
 }

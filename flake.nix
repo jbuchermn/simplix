@@ -21,30 +21,30 @@
         initfs = import ./initfs.nix { inherit pkgs; };
         rootfs = import ./rootfs.nix { inherit pkgs; };
         package = import ./package.nix { inherit pkgs initfs rootfs; };
+
+        simplix = builder: builtins.mapAttrs
+          (_: hw: package hw (builder hw))
+          hardware;
       in
       rec {
-        pkgs-cross = hardware.riscv-qemu.pkgs-cross;
 
-        ###################################################################
-        simplix = args: builtins.mapAttrs
-          (_: hw: package hw args)
-          hardware;
-
-        # nix build .#simplix-basic.<board> (e.g. .#simplix-basic.riscv-qemu)
         ###################################################################
         packages = {
-          simplix-basic = builtins.mapAttrs
-            (_: hw: package hw {
-              simplix-user = with hw.pkgs-cross; [ 
-                python3
-                libgpiod
-              ];
-            })
-            hardware;
+          # <simplix-flake>.packages.${system}.simplix (hw: {...})
+          inherit simplix;
+
+          # nix build .#simplix-basic.<board> (e.g. .#simplix-basic.riscv-qemu)
+          simplix-basic = simplix (hw: {
+            withHost = false;
+            userPkgs = with hw.pkgs-cross; [
+              python3
+              libgpiod
+            ];
+          });
         };
 
-        # nix develop .#<board> (e.g. .#riscv-qemu)
         ###################################################################
+        # nix develop .#<board> (e.g. .#riscv-qemu)
         devShells = with pkgs; lib.concatMapAttrs
           (name: hw:
             let
@@ -103,7 +103,8 @@
           hardware;
 
         ###################################################################
-        devShell = 
+        # nix develop
+        devShell =
           pkgs.mkShell
             {
               nativeBuildInputs = with pkgs; [
