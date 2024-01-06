@@ -16,6 +16,7 @@
         hardware = {
           riscv-qemu = (import ./hardware/riscv-qemu.nix) { inherit nixpkgs system; };
           riscv-sipeed-lichee-rv = (import ./hardware/riscv-sipeed-lichee-rv.nix) { inherit nixpkgs system; };
+          arm64-qemu = (import ./hardware/arm64-qemu.nix) { inherit nixpkgs system; };
         };
 
         initfs = import ./initfs.nix { inherit pkgs; };
@@ -26,12 +27,15 @@
           (_: hw: package hw (builder hw))
           hardware;
       in
-      rec {
+      {
 
         ###################################################################
         packages = {
           # <simplix-flake>.packages.${system}.simplix (hw: {...})
           inherit simplix;
+
+          # nix build .#hardware.<board>.{linux,bootloader,bootfs}
+          inherit hardware;
 
           # nix build .#simplix-basic.<board> (e.g. .#simplix-basic.riscv-qemu)
           simplix-basic = simplix (hw: {

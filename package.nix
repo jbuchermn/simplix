@@ -71,7 +71,7 @@ pkgs.stdenv.mkDerivation {
       echo "Creating partitions..."
       blockdev --rereadpt $blk_dev
     cat <<EOF |  sfdisk $blk_dev
-    1M,32M,c
+    1M,128M,c
     ,,L
     EOF
 
