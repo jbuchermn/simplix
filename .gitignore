@@ -1,7 +1,8 @@
+.ccls-cache
 tmp
 dev
-result
 home
-.ccls-cache
+result
+outputs
 sdcard.img
 qemu.sh

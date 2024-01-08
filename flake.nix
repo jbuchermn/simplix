@@ -17,6 +17,7 @@
           riscv-qemu = (import ./hardware/riscv-qemu.nix) { inherit nixpkgs system; };
           riscv-sipeed-lichee-rv = (import ./hardware/riscv-sipeed-lichee-rv.nix) { inherit nixpkgs system; };
           arm64-qemu = (import ./hardware/arm64-qemu.nix) { inherit nixpkgs system; };
+          arm-qemu = (import ./hardware/arm-qemu.nix) { inherit nixpkgs system; };
         };
 
         initfs = import ./initfs.nix { inherit pkgs; };
@@ -92,12 +93,12 @@
                           return
                         fi
 
-                        cp ./hardware/$karch-$board-$kver.config ./dev/linux-$kver/.config
+                        cp ./hardware/$karch-$board-$kver.config ./dev/linux-$kver/.config 2>/dev/null | echo "No old config there..."
                         pushd ./dev/linux-$kver
 
                         make $config
                         popd
-                        cp ./hardware/$karch-$board-$kver.config ./hardware/$karch-$board-$kver.config.old
+                        cp ./hardware/$karch-$board-$kver.config ./hardware/$karch-$board-$kver.config.old 2>/dev/nll
                         cp ./dev/linux-$kver/.config ./hardware/$karch-$board-$kver.config
                       }
                       kernel-config

@@ -6,14 +6,16 @@ Done:
 - Try to build distro using nix on host
 
 Next steps:
-- ARM64
-    - Boot qemu with ATF
-    - Boot Raspberry Pi
-    - Boot BPI M2 ZERO
+- withHost should mean enough packages to build nix (therefore - relocate nix store)
+
+- Boot qemu on ARM
+- Boot BPI M2 ZERO
+
 - Simple status display using gpio leds
 - Create common nix for kernel / u-boot - or use nixpkgs version
 - Adjust partition sizes
 - Allow only changing certain parts in make.sh
+- Optimize kernel size (specifically qemu)
 
 Ideas / Notes:
 - Have an eye on kernel version (nix headers / glibc v. manually compiled kernel)
