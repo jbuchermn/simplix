@@ -18,6 +18,7 @@
           riscv-sipeed-lichee-rv = (import ./hardware/riscv-sipeed-lichee-rv.nix) { inherit nixpkgs system; };
           arm64-qemu = (import ./hardware/arm64-qemu.nix) { inherit nixpkgs system; };
           arm-qemu = (import ./hardware/arm-qemu.nix) { inherit nixpkgs system; };
+          arm-bpi-m2zero = (import ./hardware/arm-bpi-m2zero) { inherit nixpkgs system; };
         };
 
         initfs = import ./initfs.nix { inherit pkgs; };
@@ -38,9 +39,18 @@
           # nix build .#hardware.<board>.{linux,bootloader,bootfs}
           inherit hardware;
 
-          # nix build .#simplix-basic.<board> (e.g. .#simplix-basic.riscv-qemu)
+          # nix build .#simplix-<...>.<board> (e.g. .#simplix-basic.riscv-qemu)
           simplix-basic = simplix (hw: {
             withHost = false;
+            userPkgs = with hw.pkgs-cross; [
+              python3
+              libgpiod
+            ];
+          });
+
+          simplix-debug = simplix (hw: {
+            withHost = true;
+            withDebug = true;
             userPkgs = with hw.pkgs-cross; [
               python3
               libgpiod
@@ -93,13 +103,22 @@
                           return
                         fi
 
-                        cp ./hardware/$karch-$board-$kver.config ./dev/linux-$kver/.config 2>/dev/null | echo "No old config there..."
+                        if [ -d "./hardware/$karch-$board" ]; then
+                          cp ./hardware/$karch-$board/$kver.config ./dev/linux-$kver/.config 2>/dev/null | echo "No old config there..."
+                        else
+                          cp ./hardware/$karch-$board-$kver.config ./dev/linux-$kver/.config 2>/dev/null | echo "No old config there..."
+                        fi
                         pushd ./dev/linux-$kver
 
                         make $config
                         popd
-                        cp ./hardware/$karch-$board-$kver.config ./hardware/$karch-$board-$kver.config.old 2>/dev/nll
-                        cp ./dev/linux-$kver/.config ./hardware/$karch-$board-$kver.config
+                        if [ -d "./hardware/$karch-$board" ]; then
+                          cp ./hardware/$karch-$board/$kver.config ./hardware/$karch-$board/$kver.config.old 2>/dev/null
+                          cp ./dev/linux-$kver/.config ./hardware/$karch-$board/$kver.config
+                        else
+                          cp ./hardware/$karch-$board-$kver.config ./hardware/$karch-$board-$kver.config.old 2>/dev/null
+                          cp ./dev/linux-$kver/.config ./hardware/$karch-$board-$kver.config
+                        fi
                       }
                       kernel-config
                     '';

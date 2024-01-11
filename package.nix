@@ -49,11 +49,11 @@ pkgs.stdenv.mkDerivation {
       part_root=/dev/loop0p2
 
       if  losetup -l | grep -q $blk_dev; then
-      echo "Already set up"
+        echo "Already set up"
       else
       [ -f "$img_path" ] && rm $img_path
       dd if=/dev/zero of=$img_path bs=1M count=1024
-       losetup -P $blk_dev $img_path
+        losetup -P $blk_dev $img_path
       fi
     }
 
@@ -61,6 +61,11 @@ pkgs.stdenv.mkDerivation {
       blk_dev=$1
       part_boot="$(echo $1)1"
       part_root="$(echo $1)2"
+
+      if [ ! -e "$blk_dev" ]; then
+        echo "Could not find $blk_dev..."
+        exit 1
+      fi
 
       read -p "Using $blk_dev - press enter to continue"
     }
@@ -70,7 +75,7 @@ pkgs.stdenv.mkDerivation {
       echo "**********"
       echo "Creating partitions..."
       blockdev --rereadpt $blk_dev
-    cat <<EOF |  sfdisk $blk_dev
+    cat <<EOF |  sfdisk $blk_dev || exit 1
     1M,128M,c
     ,,L
     EOF

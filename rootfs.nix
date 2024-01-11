@@ -2,7 +2,8 @@
 pkgs-cross:
 linux:
 { userPkgs ? [ ]
-, withHost ? true
+, withHost ? false
+, withDebug ? true
 }:
 let
   simplix-shell = (with pkgs-cross; bash.override { interactive = true; });
@@ -18,9 +19,17 @@ let
     (openssh.override { withKerberos = false; withFIDO = false; })
 
     curl
+    xz
     vim
   ];
+  simplix-debug = with pkgs-cross; [
+    iw
+    wirelesstools
+    iproute2
+    strace
+  ];
   simplix-cacert = (with pkgs-cross; cacert);
+  simplix-regdb = (with pkgs-cross; wireless-regdb);
   simplix-host = with pkgs-cross; [
     git
     gcc
@@ -29,12 +38,14 @@ let
   ];
 
   target-system = pkgs-cross.stdenv.mkDerivation rec {
-    name = "${linux.name}-target";
+    name = "target";
     depsTargetTarget = simplix-base ++ [
+      simplix-cacert
       simplix-shell
       simplix-toybox
     ] ++ userPkgs
-      ++ (pkgs.lib.optionals withHost simplix-host);
+      ++ (pkgs.lib.optionals withHost simplix-host)
+      ++ (pkgs.lib.optionals withDebug simplix-debug);
 
     phases = [ "installPhase" ];
 
@@ -71,8 +82,9 @@ pkgs-cross.stdenv.mkDerivation
     ln -s usr/{bin,sbin,lib} $ROOT
 
     ######## Kernel modules
-    mkdir -p $ROOT/lib/modules
-    cp -r ${linux}/modules/lib/* $ROOT/lib/
+    mkdir -p $ROOT/lib/{modules,firmware}
+    [ -d "${linux}/modules" ] && cp -r ${linux}/modules/* $ROOT/lib/modules
+    [ -d "${linux}/firmware" ] && cp -r ${linux}/firmware/* $ROOT/lib/firmware
 
     ######## Cross-compiled binaries
     cat <<'EOT' >> $ROOT/../make.sh
@@ -118,6 +130,7 @@ pkgs-cross.stdenv.mkDerivation
       if [ ! -z "$ssid" ]; then
         read -s -p "WiFi Password: " passwd
     cat <<EOF > $1/etc/secrets/wpa_supplicant.conf
+    update_config=1
     network={
       ssid="$ssid"
       scan_ssid=1
@@ -154,18 +167,19 @@ pkgs-cross.stdenv.mkDerivation
 
     echo "Starting..."
     for i in $(ls -1 /etc/rc.d/ 2>/dev/null | sort); do
-    	[ -d /etc/rc.d/"$i" ] && continue;
-    	echo "$i..."
-    	echo -e "\n******************" >> /var/log/rc.d/"$i".log
-    	/bin/sh /etc/rc.d/"$i" >> /var/log/rc.d/"$i".log 2>&1
-    	cat /var/log/rc.d/"$i".log
+      [ -d /etc/rc.d/"$i" ] && continue;
+      {
+        echo -e "\n******************"
+        echo "$i..."
+        /bin/sh /etc/rc.d/"$i"
+      } 2>&1 | tee /var/log/rc.d/"$i".log
     done
 
     echo "Main..."
     if [ -e "$HOME/main.sh" ]; then
     	/bin/sh "$HOME/main.sh"
     else
-    	cd $HOME; /bin/sh
+    	login
     fi
 
     EOT
@@ -176,17 +190,23 @@ pkgs-cross.stdenv.mkDerivation
     ### Kernel: modules and such
     cat <<EOT >> $ROOT/etc/rc.d/100_kernel.sh
     #!/bin/sh
+
+    # Link modprobe in case kernel needs to load modules itself
+    cd /sbin; rm modprobe 2>/dev/null; ln -s \$(which modprobe) modprobe; cd ..
+
     # Kernel bug workaround for ping
     echo 0 99999999 > /proc/sys/net/ipv4/ping_group_range
     EOT
     [ -e "${linux}/load_modules.sh" ] && cat ${linux}/load_modules.sh >> $ROOT/etc/rc.d/100_kernel.sh
+    cp -r ${simplix-regdb}/lib/firmware/* $ROOT/lib/firmware/
 
     ### Networking
-
     cat <<'EOT' > $ROOT/etc/rc.d/200_networking.sh
     #!/bin/sh
     [ -e "/etc/secrets/wpa_supplicant.conf" ] && cat /etc/secrets/wpa_supplicant.conf >> /etc/wpa_supplicant.conf
     rm -f /etc/secrets/wpa_supplicant.conf
+
+    mkdir -p /var/log/rc.d/200_networking
 
     ifconfig lo 127.0.0.1
     hostname $(cat /etc/hostname)
@@ -196,10 +216,10 @@ pkgs-cross.stdenv.mkDerivation
     inet_dev=""
 
     if [ -e "/etc/wpa_supplicant.conf" ]; then
-        for i in $(ls /sys/class/ieee80211/*/device/net/); do
+        for i in $(ls /sys/class/ieee80211/*/device/net/ 2>/dev/null); do
             echo "Starting up $i..."
             ifconfig $i up
-            wpa_supplicant -B -i $i -c /etc/wpa_supplicant.conf && wifi_dev=$i
+            wpa_supplicant -B -i $i -c /etc/wpa_supplicant.conf -f /var/log/rc.d/200_networking/wpa_supplicant.log && wifi_dev=$i
         done
     fi
 
@@ -220,19 +240,16 @@ pkgs-cross.stdenv.mkDerivation
     fi
 
     if [ ! -z "$inet_dev" ]; then
-        echo "Going for $inet_dev..."
-        dhcp -i $inet_dev -s /etc/rc.d/200_networking/update_dhcp.sh
+        echo "Starting DHCP for for $inet_dev..."
+        dhcp -i $inet_dev -b -s /etc/rc.d/200_networking/update_dhcp.sh > /var/log/rc.d/200_networking/dhcp.log
     else
         echo "No internet device, skipping dhcp..."
     fi
-
-    [ "$(date +%s)" -lt 10000000 ] && sntp -sq time.google.com
     EOT
 
     mkdir -p $ROOT/etc/rc.d/200_networking
     cat <<'EOT' > $ROOT/etc/rc.d/200_networking/update_dhcp.sh
     #!/bin/sh
-    mkdir -p /var/log/rc.d/200_networking
     exec 1>/var/log/rc.d/200_networking/update_dhcp.sh.log 2>&1
 
     if [ "$1" = "deconfig" ]; then
@@ -242,6 +259,8 @@ pkgs-cross.stdenv.mkDerivation
         echo "bound: binding interface $interface to $ip (router $router)..."
         ifconfig $interface $ip
         route add default gw $router dev $interface
+
+        [ "$(date +%s)" -lt 10000000 ] && sntp -sq time.google.com
     elif [ "$1" = "renew" ]; then
         echo "renew: setting default gateway"
         route add default gw $router dev $interface
@@ -302,7 +321,7 @@ pkgs-cross.stdenv.mkDerivation
       if [ -d "$h" ]; then
         echo "Copying home from $h..."
         mkdir -p $1/home
-        cp -r "$h"/* $1/home/
+        cp -r $h/* $1/home/ 2>/dev/null
         sudo chown -R root $1/home
       fi
     }
