@@ -22,7 +22,7 @@
         };
 
         initfs = import ./initfs.nix { inherit pkgs; };
-        rootfs = import ./rootfs.nix { inherit pkgs; };
+        rootfs = import ./rootfs { inherit pkgs; };
         package = import ./package.nix { inherit pkgs initfs rootfs; };
 
         simplix = builder: builtins.mapAttrs

@@ -129,6 +129,20 @@ pkgs.stdenv.mkDerivation {
       popd
     }
 
+    function make_home() {
+      h="$1"
+      if [ -z "$h" ]; then
+        h="./home"
+      fi
+
+      if [ -d "$h" ]; then
+        echo "Copying home from $h..."
+        mkdir -p $mount_dir/rootfs/home
+        cp -r $h/* $mount_dir/rootfs/home/ 2>/dev/null
+        sudo chown -R root $mount_dir/rootfs/home
+      fi
+    }
+
     if [ -z "$2" ]; then
       echo "Usage: make.sh <target> <user> [<home>]. Run as root"
       echo "Target can be /dev/sd... or ../../result.img"
@@ -149,10 +163,15 @@ pkgs.stdenv.mkDerivation {
     format
     write_bootfs
     write_rootfs
+    make_home "$3"
+
+    # Provided by rootfs
     make_store "$mount_dir/rootfs"
-    make_home "$mount_dir/rootfs" "$3"
     make_secrets "$mount_dir/rootfs" "$2"
+
+    # Provided by bootloader
     flash_bootloader "$blk_dev"
+
     cleanup
 
     case $1 in

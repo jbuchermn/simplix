@@ -5,14 +5,10 @@ Status:
 - Basic system with WiFi and SSH on ARM / RISC-V
 
 Next steps:
-- WiFi on BPI-M2ZERO
-- SSL curl no longer works?
-
+- Derivation to build all platforms in one go + test current status
 - withHost should include nix (either provide a proper setup, or allow nix to be installed via script)
 - root password and wpa_passphrase
-- Clean up
-    - Move rootfs from cat EOT >> file to actually having the files in repo
-    - Allow contract between package.nix and rootfs.nix, minimize "script injection"
+- Clean up, minimize "script injection"
 
 - Simple status display using gpio leds
 - Create common nix for kernel / u-boot - or use nixpkgs version

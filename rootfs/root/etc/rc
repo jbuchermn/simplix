@@ -1,0 +1,23 @@
+#!/bin/sh
+echo "Setting up log dir /var/log/rc.d"
+rm -rf /var/log/rc.d-archive-2
+[ -d "/var/log/rc.d-archive-1" ] && cp -r /var/log/rc.d-archive-1 /var/log/rc.d-archive-2
+[ -d "/var/log/rc.d" ] && cp -r /var/log/rc.d /var/log/rc.d-archive-1
+mkdir -p /var/log/rc.d
+
+echo "Starting..."
+for i in $(ls -1 /etc/rc.d/ 2>/dev/null | sort); do
+  [ -d /etc/rc.d/"$i" ] && continue;
+  {
+    echo -e "\n******************"
+    echo "$i..."
+    /bin/sh /etc/rc.d/"$i"
+  } 2>&1 | tee /var/log/rc.d/"$i".log
+done
+
+echo "Main..."
+if [ -e "$HOME/main.sh" ]; then
+	/bin/sh "$HOME/main.sh"
+else
+	login
+fi
