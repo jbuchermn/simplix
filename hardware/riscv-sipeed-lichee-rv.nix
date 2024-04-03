@@ -181,8 +181,10 @@ rec
         '';
 
         buildPhase = ''
+          mkdir -p ./mod_root
           pushd linux*
-          make -j$(nproc)
+          make -j$(nproc) Image modules
+          make -j$(nproc) INSTALL_MOD_PATH=../mod_root modules_install
           popd
 
           KSRC=$(pwd)/linux-${kernel-release}
@@ -197,20 +199,27 @@ rec
 
           pushd linux*
           cp ./arch/$ARCH/boot/Image $out/Image
-          make -j$(nproc) INSTALL_MOD_PATH=$out/modules modules_install
           popd
 
           pushd rtl8723ds*
-          install -D -p -m 644 ./8723ds.ko $out/modules/lib/modules/${kernel-release}/kernel/drivers/net/wireless/8723ds.ko
+          install -D -p -m 644 ./8723ds.ko ../mod_root/lib/modules/${kernel-release}/kernel/drivers/net/wireless/8723ds.ko
           popd
 
-          depmod -a -b $out/modules ${kernel-release}
+          depmod -a -b ./mod_root ${kernel-release}
 
-          cat <<-EOT >> $out/load_modules.sh
-          modprobe 8723ds
-          EOT
+          cp -r ./mod_root/lib/modules/* $out/modules
         '';
       };
+
+  ###################################################################
+  env = ''
+    export SIMPLIX_STATUS_GPIO="-G /dev/gpiochip0 -g 65"
+  '';
+
+  init = ''
+    modprobe 8723ds
+  '';
+
 
   ###################################################################
   bootfs = initfs: pkgs.stdenv.mkDerivation

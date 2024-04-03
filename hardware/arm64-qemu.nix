@@ -146,8 +146,10 @@ rec
         '';
 
         buildPhase = ''
+          mkdir -p ./mod_root
           pushd linux*
-          make -j$(nproc)
+          make -j$(nproc) zImage modules dtbs
+          make -j$(nproc) INSTALL_MOD_PATH=../mod_root modules_install
           popd
         '';
 
@@ -155,8 +157,9 @@ rec
           mkdir -p $out/modules
 
           pushd linux*
-          cp ./arch/$ARCH/boot/Image $out/Image
-          make -j$(nproc) INSTALL_MOD_PATH=$out/modules modules_install
+          cp ./arch/$ARCH/boot/zImage $out/zImage
+          cp -r ./arch/$ARCH/boot/dts $out/dts
+          cp -r ../mod_root/lib/modules/* $out/modules
           popd
         '';
       };

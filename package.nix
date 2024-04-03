@@ -4,7 +4,7 @@ rootfs-config:
 let
   simplix-bootloader = hardware.bootloader;
   simplix-bootfs = hardware.bootfs (initfs hardware.pkgs-cross);
-  simplix-rootfs = rootfs hardware.pkgs-cross hardware.linux rootfs-config;
+  simplix-rootfs = rootfs hardware rootfs-config;
 in
 pkgs.stdenv.mkDerivation {
   name = "package";

@@ -22,8 +22,9 @@
         };
 
         initfs = import ./initfs.nix { inherit pkgs; };
-        rootfs = import ./rootfs { inherit pkgs; };
+        rootfs = import ./rootfs { inherit pkgs simplix-status; };
         package = import ./package.nix { inherit pkgs initfs rootfs; };
+        simplix-status = import ./status { inherit pkgs; };
 
         simplix = builder: builtins.mapAttrs
           (_: hw: package hw (builder hw))
@@ -56,6 +57,11 @@
               libgpiod
             ];
           });
+
+          # nix build .#status.<board>
+          status = builtins.mapAttrs
+            (_: hw: simplix-status hw)
+            hardware;
         };
 
         ###################################################################

@@ -1,12 +1,12 @@
-{ pkgs }:
-pkgs-cross:
-linux:
+{ pkgs, simplix-status }:
+hardware:
 { userPkgs ? [ ]
 , withHost ? false
 , withDebug ? true
 , regulatoryCountry ? "DE"
 }:
 let
+  pkgs-cross = hardware.pkgs-cross;
   simplix-shell = (with pkgs-cross; bash.override { interactive = true; });
   simplix-toybox = (with pkgs-cross; toybox.overrideAttrs (prev: {
     configurePhase = ''
@@ -22,6 +22,7 @@ let
     curl
     xz
     vim
+    (simplix-status hardware)
   ];
   simplix-debug = with pkgs-cross; [
     iw
@@ -91,8 +92,8 @@ pkgs-cross.stdenv.mkDerivation
 
     ### Modules and firmware
     mkdir -p $ROOT/lib/{modules,firmware}
-    [ -d "${linux}/modules" ] && cp -r ${linux}/modules/* $ROOT/lib/modules
-    [ -d "${linux}/firmware" ] && cp -r ${linux}/firmware/* $ROOT/lib/firmware
+    [ -d "${hardware.linux}/modules" ] && cp -r ${hardware.linux}/modules/* $ROOT/lib/modules
+    [ -d "${hardware.linux}/firmware" ] && cp -r ${hardware.linux}/firmware/* $ROOT/lib/firmware
 
 
     ######## Cross-compiled binaries
@@ -130,6 +131,7 @@ pkgs-cross.stdenv.mkDerivation
     cat <<EOT > $ROOT/etc/profile
     source ${target-system}/env.sh
     export PATH=\$PATH:\$SIMPLIX_PATH
+    ${hardware.env or ""}
     EOT
 
 
@@ -143,8 +145,13 @@ pkgs-cross.stdenv.mkDerivation
     chmod +x $ROOT/sbin/init
 
     ### 100 - Kernel: modules and such
-    [ -e "${linux}/load_modules.sh" ] && cat ${linux}/load_modules.sh >> $ROOT/etc/rc.d/100_kernel.sh
     cp -r ${simplix-regdb}/lib/firmware/* $ROOT/lib/firmware/
+
+    cat <<'EOT' >> $ROOT/etc/rc.d/110_hardware.sh
+    #!/bin/sh
+    ${hardware.init or ""}
+    EOT
+    chmod +x $ROOT/etc/rc.d/110_hardware.sh
 
     ### 200 - Networking
     echo "nameserver 8.8.8.8" > $ROOT/etc/resolv.conf

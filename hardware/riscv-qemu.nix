@@ -165,8 +165,10 @@ rec
         '';
 
         buildPhase = ''
+          mkdir -p ./mod_root
           pushd linux*
-          make -j$(nproc)
+          make -j$(nproc) Image modules
+          make -j$(nproc) INSTALL_MOD_PATH=../mod_root modules_install
           popd
         '';
 
@@ -175,8 +177,9 @@ rec
 
           pushd linux*
           cp ./arch/$ARCH/boot/Image $out/Image
-          make -j$(nproc) INSTALL_MOD_PATH=$out/modules modules_install
           popd
+
+          cp -r ./mod_root/lib/modules/* $out/modules
         '';
       };
 

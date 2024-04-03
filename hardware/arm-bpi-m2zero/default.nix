@@ -164,19 +164,24 @@ rec
           cp ./brcmfmac43430-sdio.bin $out/firmware/brcm/brcmfmac43430-sdio.bin
           cp ./brcmfmac43430-sdio.clm_blob $out/firmware/brcm/brcmfmac43430-sdio.clm_blob
           cp ./brcmfmac43430-sdio.AP6212.txt $out/firmware/brcm/brcmfmac43430-sdio.sinovoip,bpi-m2-zero.txt
-
-          cat <<-EOT >> $out/load_modules.sh
-          modprobe brcmfmac
-
-          # Wait for wifi devices to show up
-          echo "Waiting for wifi device"
-          until ls /sys/class/ieee80211/*/device/net/ 2>/dev/null; do
-            echo "."
-            sleep 1
-          done
-          EOT
         '';
       };
+
+  ###################################################################
+  env = ''
+    # TODO: SIMPLIX_STATUS_GPIO
+  '';
+
+  init = ''
+    modprobe brcmfmac
+
+    # Wait for wifi devices to show up
+    echo "Waiting for wifi device"
+    until ls /sys/class/ieee80211/*/device/net/ 2>/dev/null; do
+      echo "."
+      sleep 1
+    done
+  '';
 
   ###################################################################
   bootfs = initfs: pkgs.stdenv.mkDerivation

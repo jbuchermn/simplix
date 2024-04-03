@@ -137,10 +137,10 @@ rec
 
         sourceRoot = ".";
         preUnpack = ''
-          unpackCmdHooks+=(_tryConfigFile)
-          _tryConfigFile() {
-            if ! [[ "$1" =~ \.config$ ]]; then return 1; fi
-            cp "$1" ./
+          unpackCmdHooks+=(_try)
+          _try() {
+            if [[ "$1" =~ \.tar.xz$ ]]; then return 1; fi
+            cp "$1" ./$(stripHash "$1")
           }
         '';
 
@@ -153,13 +153,15 @@ rec
           export CROSS_COMPILE=${config}-
 
           pushd linux*
-          cp ../*.config ./.config
+          cp ../${kernel-release}.config ./.config
           popd
         '';
 
         buildPhase = ''
+          mkdir -p ./mod_root
           pushd linux*
           make -j$(nproc) zImage modules dtbs
+          make -j$(nproc) INSTALL_MOD_PATH=../mod_root modules_install
           popd
         '';
 
@@ -169,7 +171,7 @@ rec
           pushd linux*
           cp ./arch/$ARCH/boot/zImage $out/zImage
           cp -r ./arch/$ARCH/boot/dts $out/dts
-          make -j$(nproc) INSTALL_MOD_PATH=$out/modules modules_install
+          cp -r ../mod_root/lib/modules/* $out/modules
           popd
         '';
       };

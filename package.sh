@@ -1,3 +1,5 @@
+# Provided code inserted here
+
 img_path=/tmp/output.img
 blk_dev=/dev/null
 part_boot=/dev/null
