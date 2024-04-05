@@ -17,7 +17,9 @@ done
 
 echo "Main..."
 if [ -e "$HOME/main.sh" ]; then
-	/bin/sh "$HOME/main.sh"
+	cd "$HOME" && ./main.sh
 else
-	login
+	while true; do
+		login
+	done
 fi

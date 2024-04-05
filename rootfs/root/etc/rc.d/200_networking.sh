@@ -36,7 +36,7 @@ elif [ ! -z "$wifi_dev" ]; then
 fi
 
 if [ ! -z "$inet_dev" ]; then
-    echo "Starting DHCP for for $inet_dev..."
+    echo "Starting DHCP for $inet_dev..."
     dhcp -i $inet_dev -b -s /etc/rc.d/200_networking/update_dhcp.sh > /var/log/rc.d/200_networking/dhcp.log
 else
     echo "No internet device, skipping dhcp..."

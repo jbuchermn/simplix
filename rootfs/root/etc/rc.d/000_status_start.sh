@@ -1,6 +1,6 @@
 #!/bin/sh
 if [ ! -z "$SIMPLIX_STATUS_GPIO" ]; then
-	mkdir -p /var/run/simplix-status
+	mkdir -p /var/run
 	simplix-status -d -f /var/run/simplix-status $SIMPLIX_STATUS_GPIO
-	echo "fast" > /var/run/simplix-status
+	echo "on" > /var/run/simplix-status
 fi
