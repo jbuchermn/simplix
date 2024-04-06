@@ -39,6 +39,7 @@ pkgs-cross.stdenv.mkDerivation {
     # Write init script
     cat <<-'EOF' > $ROOT/init
     #!/bin/sh
+    echo "Starting initfs /init..."
 
     export HOME=/home PATH=/bin:/sbin
 
@@ -56,8 +57,8 @@ pkgs-cross.stdenv.mkDerivation {
     mount -t proc proc proc
     mount -t sysfs sys sys
 
-    echo "Looking for root"
-    for i in {1..10}; do
+    echo "Waiting for root..."
+    for i in {1..60}; do
         echo "."
         root=$(blkid | grep "LABEL=\"root\"" | sed -e 's/^\(.*\):.*$/\1/')
         if [ -e "$root" ]; then

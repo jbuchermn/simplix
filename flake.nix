@@ -19,6 +19,7 @@
           arm64-qemu = (import ./hardware/arm64-qemu.nix) { inherit nixpkgs system; };
           arm-qemu = (import ./hardware/arm-qemu.nix) { inherit nixpkgs system; };
           arm-bpi-m2zero = (import ./hardware/arm-bpi-m2zero) { inherit nixpkgs system; };
+          arm-rpi-zero-w = (import ./hardware/arm-rpi-zero-w) { inherit nixpkgs system; };
         };
 
         initfs = import ./initfs.nix { inherit pkgs; };
